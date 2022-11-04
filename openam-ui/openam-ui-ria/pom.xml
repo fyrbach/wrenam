@@ -331,8 +331,8 @@
                         </goals>
                         <phase>initialize</phase>
                         <configuration>
-                            <nodeVersion>v14.17.0</nodeVersion>
-                            <npmVersion>6.14.13</npmVersion>
+                            <nodeVersion>v18.12.1</nodeVersion>
+                            <npmVersion>8.19.2</npmVersion>
                             <downloadRoot>https://nodejs.org/dist/</downloadRoot>
                             <npmDownloadRoot>https://wrensecurity.jfrog.io/artifactory/api/npm/npm-virtual/npm/-/</npmDownloadRoot>
                         </configuration>

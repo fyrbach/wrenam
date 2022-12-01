@@ -1313,17 +1313,21 @@ Copyright: Copyright 1997-2007 Sun Microsystems
 Version: jersey-core-1.1.5.2.jar
 Copyright: Copyright 1997-2007 Sun Microsystems, Inc. All rights reserved.
 
-Version: chf-http-core-1.0.0.jar
+Version: chf-http-core-22.5.0.jar
 Copyright: Copyright 2015 ForgeRock AS.
+           Portions Copyright 2022 Wren Security
 
-Version: chf-http-servlet-1.0.0.jar
+Version: chf-http-servlet-22.5.0.jar
 Copyright: Copyright 2015 ForgeRock AS.
+           Portions Copyright 2022 Wren Security
 
-Version: chf-client-apache-common-1.0.0.jar
+Version: chf-client-apache-common-22.5.0.jar
 Copyright: Copyright 2015 ForgeRock AS.
+           Portions Copyright 2022 Wren Security
 
-Version: chf-client-apache-sync-1.0.0.jar
+Version: chf-client-apache-sync-22.5.0.jar
 Copyright: Copyright 2015 ForgeRock AS.
+           Portions Copyright 2022 Wren Security
 
 Version: json-fluent-3.0.0.jar
 Copyright: Copyright 2015 ForgeRock AS.

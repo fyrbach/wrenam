@@ -4,17 +4,19 @@ DO NOT TRANSLATE OR LOCALIZE
 COMMON DEVELOPMENT AND DISTRIBUTION LICENSE (CDDL) Version 1.0
 ***************************************************************************
 
-Version: chf-http-core.jar (3.0.1)
+Version: chf-http-core.jar (22.5.0)
 Copyright: Copyright 2012-2016 ForgeRock AS.
            Copyright 2010-2011 ApexIdentity Inc.
            Copyright 2009 Sun Microsystems Inc.
            Portions Copyright 2011-2016 ForgeRock AS.
            Portions Copyright 2010-2011 ApexIdentity Inc.
+           Portions Copyright 2022 Wren Security
 
-Version: chf-http-servlet.jar (3.0.1)
+Version: chf-http-servlet.jar (22.5.0)
 Copyright: Copyright 2012-2015 ForgeRock AS.
            Copyright 2010-2011 ApexIdentity Inc.
            Portions Copyright 2011-2015 ForgeRock AS.
+           Portions Copyright 2022 Wren Security
 
 Version: forgerock-audit-core.jar (4.1.1)
 Copyright: Copyright 2011-2015 ForgeRock AS.

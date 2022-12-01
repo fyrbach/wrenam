@@ -1334,8 +1334,9 @@ Copyright: Copyright 2015 ForgeRock AS.
 Version: json-resource-http-3.0.0.jar
 Copyright: Copyright 2015 ForgeRock AS.
 
-Version: json-web-token-3.0.0.jar
+Version: json-web-token-22.5.0.jar
 Copyright: Copyright 2015 ForgeRock AS.
+           Portions Copyright 2022 Wren Security
 
 Version: jsr311-api-1.1.1.jar
 Copyright: Copyright (c) 2009 Sun Microsystems Inc. All Rights Reserved

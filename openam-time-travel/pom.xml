@@ -27,7 +27,7 @@
     <name>OpenAM Time Travel</name>
     <dependencies>
         <dependency>
-            <groupId>org.forgerock.commons</groupId>
+            <groupId>org.wrensecurity.commons</groupId>
             <artifactId>forgerock-util</artifactId>
             <scope>provided</scope>
         </dependency>

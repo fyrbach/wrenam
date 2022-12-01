@@ -52,12 +52,14 @@ Copyright: Copyright (c) 2011 Oracle and/or its affiliates. All rights reserved.
 Version: grizzly-http-servlet.jar (2.3.23)
 Copyright: Copyright (c) 2008-2012 Oracle and/or its affiliates. All rights reserved.
 
-Version: i18n-core.jar (1.4.2)
+Version: i18n-core.jar (22.5.0)
 Copyright: Copyright 2011 ForgeRock AS
            Copyright 2007-2009 Sun Microsystems, Inc.
+           Portions Copyright 2022 Wren Security
 
-Version: i18n-slf4j.jar (1.4.2)
+Version: i18n-slf4j.jar (22.5.0)
 Copyright: Copyright 2011-2014 ForgeRock AS
+           Portions Copyright 2022 Wren Security
 
 Version: javax.mail.jar (1.5.1)
 Copyright: Copyright (c) 2005-2010 Oracle and/or its affiliates. All rights reserved.

@@ -1313,13 +1313,15 @@ Copyright: Copyright (c) 2005-2009 Sun Microsystems Inc. All Rights Reserved,
            Copyright © 2010 ApexIdentity Inc. All rights reserved.,
            Copyright (c) 2004, Mikael Grev, MiG InfoCom AB.
 
-Version: i18n-core-1.4.0.jar
+Version: i18n-core-22.5.0.jar
 Copyright: Copyright 2009 Sun Microsystems, Inc,
            Portions copyright 2011 ForgeRock AS
+           Portions Copyright 2022 Wren Security
 
-Version: i18n-core-1.4.1.jar
+Version: i18n-core-22.5.0.jar
 Copyright: Copyright 2009 Sun Microsystems, Inc,
            Portions copyright 2011 ForgeRock AS
+           Portions Copyright 2022 Wren Security
 
 Version: openam-auth-ad-12.0.0.jar
 Copyright: Copyright (c) 2005-2009 Sun Microsystems Inc. All Rights Reserved,

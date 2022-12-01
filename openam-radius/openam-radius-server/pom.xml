@@ -42,8 +42,8 @@
            <scope>provided</scope>
        </dependency>
         <dependency>
-	        <groupId>org.forgerock.commons.guava</groupId>
-	        <artifactId>forgerock-guava-eventbus</artifactId>        
+	        <groupId>org.wrensecurity.commons.guava</groupId>
+	        <artifactId>wrensec-guava-eventbus</artifactId>
         </dependency>      
   </dependencies>
 

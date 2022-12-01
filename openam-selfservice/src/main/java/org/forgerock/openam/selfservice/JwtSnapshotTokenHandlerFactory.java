@@ -12,7 +12,7 @@
  * information: "Portions copyright [year] [name of copyright owner]".
  *
  * Copyright 2015-2016 ForgeRock AS.
- * Portions Copyright 2021 Wren Security.
+ * Portions Copyright 2021-2022 Wren Security.
  */
 package org.forgerock.openam.selfservice;
 
@@ -21,7 +21,7 @@ import java.security.KeyPair;
 import javax.crypto.SecretKey;
 import javax.inject.Inject;
 
-import org.forgerock.guava.common.base.Optional;
+import org.wrensecurity.guava.common.base.Optional;
 import org.forgerock.json.jose.jwe.EncryptionMethod;
 import org.forgerock.json.jose.jwe.JweAlgorithm;
 import org.forgerock.json.jose.jws.JwsAlgorithm;

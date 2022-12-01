@@ -89,8 +89,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.forgerock.commons</groupId>
-            <artifactId>forgerock-guice-core</artifactId>
+            <groupId>org.wrensecurity.commons</groupId>
+            <artifactId>wrensec-guice-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.forgerock.openam</groupId>

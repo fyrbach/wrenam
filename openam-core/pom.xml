@@ -347,8 +347,8 @@
             <classifier>no_aop</classifier>
         </dependency>
         <dependency>
-            <groupId>org.forgerock.commons</groupId>
-            <artifactId>forgerock-guice-core</artifactId>
+            <groupId>org.wrensecurity.commons</groupId>
+            <artifactId>wrensec-guice-core</artifactId>
         </dependency>
 
         <dependency>
@@ -388,8 +388,8 @@
             <artifactId>HdrHistogram</artifactId>
         </dependency>
         <dependency>
-            <groupId>org.forgerock.commons</groupId>
-            <artifactId>forgerock-guice-test</artifactId>
+            <groupId>org.wrensecurity.commons</groupId>
+            <artifactId>wrensec-guice-test</artifactId>
         </dependency>
         <dependency>
             <groupId>org.forgerock.openam</groupId>

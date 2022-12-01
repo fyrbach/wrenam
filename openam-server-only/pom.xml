@@ -656,8 +656,8 @@
         </dependency>
 
         <dependency>
-            <groupId>org.forgerock.commons</groupId>
-            <artifactId>forgerock-guice-servlet</artifactId>
+            <groupId>org.wrensecurity.commons</groupId>
+            <artifactId>wrensec-guice-servlet</artifactId>
         </dependency>
 
         <dependency>

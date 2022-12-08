@@ -72,12 +72,7 @@
 
         <dependency>
             <groupId>com.sun.xml.bind</groupId>
-            <artifactId>jaxb-libs</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>com.sun.xml.bind</groupId>
-            <artifactId>jaxb-xjc</artifactId>
+            <artifactId>jaxb-impl</artifactId>
         </dependency>
     </dependencies>
 </project>

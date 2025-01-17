@@ -25,31 +25,34 @@
  * $Id: ISAccountLockout.java,v 1.15 2009/03/07 08:01:50 veiming Exp $
  *
  * Portions Copyrighted 2011-2017 ForgeRock AS.
- * Portions Copyrighted 2023 Wren Security
+ * Portions Copyrighted 2023-2025 Wren Security.
  */
 package com.sun.identity.common;
 
-import static org.forgerock.openam.utils.Time.*;
+import static org.forgerock.openam.utils.Time.currentTimeMillis;
 
 import com.iplanet.am.util.AMSendMail;
-import javax.mail.MessagingException;
 import com.iplanet.sso.SSOException;
-import com.sun.identity.authentication.spi.AMAuthCallBackImpl;
 import com.sun.identity.authentication.spi.AMAuthCallBackException;
+import com.sun.identity.authentication.spi.AMAuthCallBackImpl;
 import com.sun.identity.idm.AMIdentity;
 import com.sun.identity.idm.IdRepoException;
 import com.sun.identity.shared.debug.Debug;
 import com.sun.identity.shared.debug.DebugLevel;
-import com.sun.identity.shared.debug.IDebug;
 import java.text.MessageFormat;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Optional;
 import java.util.ResourceBundle;
 import java.util.Set;
 import java.util.StringTokenizer;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import javax.mail.MessagingException;
+import org.apache.commons.lang3.math.NumberUtils;
 
 public class ISAccountLockout {
     private static final String USER_STATUS_ATTR="inetuserstatus";
@@ -66,19 +69,13 @@ public class ISAccountLockout {
         "sunAMAuthInvalidAttemptsData";
     
     // XML related variables
-    private static final String BEGIN_XML="<InvalidPassword>";
-    private static final String INVALID_PASS_COUNT_BEGIN ="<InvalidCount>";
-    private static final String INVALID_PASS_COUNT_END ="</InvalidCount>";
-    private static final String LAST_FAILED_BEGIN ="<LastInvalidAt>";
-    private static final String LAST_FAILED_END ="</LastInvalidAt>";
-    private static final String LOCKEDOUT_AT_BEGIN ="<LockedoutAt>";
-    private static final String LOCKEDOUT_AT_END ="</LockedoutAt>";
-    private static final String ACTUAL_LOCKOUT_DURATION_BEGIN =
-        "<ActualLockoutDuration>";
-    private static final String ACTUAL_LOCKOUT_DURATION_END =
-        "</ActualLockoutDuration>";
-    private static final String END_XML="</InvalidPassword>";
-    
+    private static final String ROOT_EL_NAME = "InvalidPassword";
+    private static final String INVALID_PASS_COUNT_EL_NAME = "InvalidCount";
+    private static final String LAST_FAILED_EL_NAME = "LastInvalidAt";
+    private static final String LOCKEDOUT_AT_EL_NAME = "LockedoutAt";
+    private static final String ACTUAL_LOCKOUT_DURATION_EL_NAME = "ActualLockoutDuration";
+    private static final String NO_OF_TIMES_LOCKED_EL_NAME = "NoOfTimesLocked";
+
     private boolean failureLockoutMode = false;
     private boolean memoryLocking = false;
     private boolean storeInvalidAttemptsInDS = true;
@@ -97,7 +94,7 @@ public class ISAccountLockout {
     private boolean needToSetInvalidAttemptsObjectClass = true;
     static Debug debug = Debug.getInstance("amAccountLockout");
     private AMAuthCallBackImpl callbackImpl = null;
-    static Map loginFailHash = Collections.synchronizedMap(new HashMap());
+    static Map<String, AccountLockoutInfo> loginFailHash = Collections.synchronizedMap(new HashMap<>());
     
     
     /**
@@ -230,8 +227,11 @@ public class ISAccountLockout {
         }        
         
         if ((lastFailTime == 0L && failCount == 1 || (lastFailTime + failureLockoutTime) > now)
-                && failCount == failureLockoutCount) {
+                && failCount % failureLockoutCount == 0) {
             lockedAt = now;
+            acInfo.setActualLockoutDuration(
+                    calculateLockoutDuration(acInfo, failureLockoutDuration, failureLockoutMultiplier));
+            acInfo.setNoOfTimesLocked(acInfo.getNoOfTimesLocked() + 1);
         }
         if (debug.messageEnabled()) {
             debug.message("ISAccountLockout.invalidPasswd:failCount:" + failCount);
@@ -240,8 +240,8 @@ public class ISAccountLockout {
         if (storeInvalidAttemptsInDS) {
             Map attrMap = new HashMap();
             Set invalidAttempts = new HashSet();
-            String invalidXML = createInvalidAttemptsXML(
-                    failCount, now, lockedAt, acInfo.getActualLockoutDuration());
+            String invalidXML = createInvalidAttemptsXml(
+                    failCount, now, lockedAt, acInfo.getActualLockoutDuration(), acInfo.getNoOfTimesLocked());
             invalidAttempts.add(invalidXML);
             
             if (debug.messageEnabled()) {
@@ -266,7 +266,7 @@ public class ISAccountLockout {
         acInfo.setLastFailTime(now);
         acInfo.setFailCount(failCount);
         acInfo.setLockoutAt(lockedAt);
-        if (lockedAt > 0) {
+        if (acInfo.getLockoutAt() + acInfo.getActualLockoutDuration() > now) {
             acInfo.setLockout(true);
         }
         acInfo.setUserToken(userName);
@@ -301,66 +301,40 @@ public class ISAccountLockout {
         setWarningCount(failCount,failureLockoutCount);
         return userWarningCount;
     }
-    
+
+    @SuppressWarnings("unchecked")
     public AccountLockoutInfo getAcInfo(String userDN, AMIdentity amIdentity) {
-        AccountLockoutInfo acInfo = null;
-        if (storeInvalidAttemptsInDS) {
-            acInfo =  new AccountLockoutInfo();
-            Set attrValueSet = Collections.EMPTY_SET;
-            
-            try {
-                attrValueSet = amIdentity.getAttribute(
-                    invalidAttemptsDataAttrName);
-            } catch (Exception e) {
-                debug.error("ISAccoutLockout.getAcInfo", e);
-                return null;
-            }
-            String xmlFromDS = null;
-            if ((attrValueSet != null) && (!attrValueSet.isEmpty())) {
-                Iterator i = attrValueSet.iterator();
-                xmlFromDS = (String) i.next();
-            }
-            int invalid_attempts = 0;
-            long last_failed = 0;
-            long locked_out_at = 0;
-            long actual_lockout_duration = failureLockoutDuration;
-            
-            if ((xmlFromDS != null) && (xmlFromDS.length() !=0) &&
-                (xmlFromDS.indexOf(BEGIN_XML) != -1)
-            ) {
-                String invalid_attempts_str = getElement(xmlFromDS,
-                    INVALID_PASS_COUNT_BEGIN,INVALID_PASS_COUNT_END);
-                invalid_attempts = Integer.parseInt(invalid_attempts_str);
-                String last_failed_str = getElement(xmlFromDS,
-                    LAST_FAILED_BEGIN, LAST_FAILED_END);
-                last_failed = Long.parseLong(last_failed_str);
-                String locked_out_at_str = getElement(xmlFromDS,
-                    LOCKEDOUT_AT_BEGIN, LOCKEDOUT_AT_END);
-                locked_out_at = Long.parseLong(locked_out_at_str);
-                String actualLockoutDuration = getElement(xmlFromDS,
-                    ACTUAL_LOCKOUT_DURATION_BEGIN, ACTUAL_LOCKOUT_DURATION_END);
-                if ((actualLockoutDuration != null) &&
-                    (actualLockoutDuration.length() != 0)) {
-                    actual_lockout_duration = Long.parseLong(
-                        actualLockoutDuration);
-                } else {
-                    actual_lockout_duration = failureLockoutDuration;
-                }
-            }
-            
-            acInfo.setLastFailTime(last_failed);
-            acInfo.setFailCount(invalid_attempts);
-            acInfo.setLockoutAt(locked_out_at);
-            acInfo.setActualLockoutDuration(actual_lockout_duration);
-            if (locked_out_at > 0) {
-                acInfo.setLockout(true);
-            }
-            
-            setWarningCount(invalid_attempts,failureLockoutCount);
-            acInfo.setWarningCount(userWarningCount);
-        } else {
-            acInfo = (AccountLockoutInfo) loginFailHash.get(userDN);
+        if (!storeInvalidAttemptsInDS) {
+            return loginFailHash.get(userDN);
         }
+
+        AccountLockoutInfo acInfo = new AccountLockoutInfo();
+        Set<String> attrValueSet = new HashSet<>();
+
+        try {
+            attrValueSet.addAll(amIdentity.getAttribute(invalidAttemptsDataAttrName));
+        } catch (Exception e) {
+            debug.error("ISAccountLockout.getAcInfo", e);
+            return null;
+        }
+
+        Optional<String> xmlFromDS = attrValueSet.stream().findFirst();
+
+        if (xmlFromDS.filter(xml -> xml.contains("<" + ROOT_EL_NAME + ">")).isPresent()) {
+            String xml = xmlFromDS.get();
+            acInfo.setFailCount((int) getElementLongValue(xml, "InvalidCount"));
+            acInfo.setLastFailTime(getElementLongValue(xml, "LastInvalidAt"));
+            acInfo.setLockoutAt(getElementLongValue(xml, "LockedOutAt"));
+            acInfo.setLockout(acInfo.getLockoutAt() + acInfo.getActualLockoutDuration() > currentTimeMillis());
+            long actualLockoutDuration = getElementLongValue(xml, "ActualLockoutDuration");
+            acInfo.setActualLockoutDuration(actualLockoutDuration == 0 ? failureLockoutDuration : actualLockoutDuration);
+            acInfo.setNoOfTimesLocked((int) getElementLongValue(xml, NO_OF_TIMES_LOCKED_EL_NAME));
+        } else {
+            acInfo.setActualLockoutDuration(failureLockoutDuration);
+        }
+
+        setWarningCount(acInfo.getFailCount(), failureLockoutCount);
+        acInfo.setWarningCount(userWarningCount);
         return acInfo;
     }
     
@@ -569,7 +543,6 @@ public class ISAccountLockout {
      *
      * @param AMIdentity the user object
      */
-    
     private void inactivateUserAccount(AMIdentity amIdentity) {
         debug.message("entering ISAccountLockout.inactivateUserAccount");
         try {
@@ -710,8 +683,7 @@ public class ISAccountLockout {
                     (actualLockoutDuration != currentLockoutDuration)) {
                     Map attrMap = new HashMap();
                     Set invalidAttempts = new HashSet();
-                    String invalidXML = createInvalidAttemptsXML(0,0,0,
-                        actualLockoutDuration);
+                    String invalidXML = createInvalidAttemptsXml(0, 0, 0, actualLockoutDuration, 0);
                     invalidAttempts.add(invalidXML);
                     attrMap.put(invalidAttemptsDataAttrName, invalidAttempts);
                     setLockoutObjectClass(amIdentity);
@@ -735,45 +707,48 @@ public class ISAccountLockout {
     
     /**
      * Returns XML to be stored in data store the format is like this
+     * <pre>
      * &lt;InvalidPassword>
-     *    &lt;InvalidCount>failureLockoutCount&lt;/LockoutCount>
-     *    &lt;LastInvalidAt>failureLockoutDuration&lt;/LockoutDuration>
-     *    &lt;LockedoutAt>failureLockoutTime&lt;/LockoutTime>
-     *  &lt;/InvalidPassword>
-     *
+     *    &lt;InvalidCount>invalidCount&lt;/LockoutCount>
+     *    &lt;LastInvalidAt>lastFailed&lt;/LockoutDuration>
+     *    &lt;LockedoutAt>lockedOutAt&lt;/LockoutTime>
+     *    &lt;ActualLockoutDuration>actualLockoutDuration&lt;/ActualLockoutDuration>
+     *    &lt;NoOfTimesLocked>noOfTimesLocked&lt;/NoOfTimesLocked>
+     * &lt;/InvalidPassword>
      */
-    private static String createInvalidAttemptsXML(
-        int invalidCount, long lastFailed, long lockedOutAt, 
-        long actualLockoutDuration) {
+    private static String createInvalidAttemptsXml(int invalidCount, long lastFailed, long lockedOutAt,
+            long actualLockoutDuration, int noOfTimeLocked) {
+        Map<String, Object> values = Map.of(
+                INVALID_PASS_COUNT_EL_NAME, invalidCount,
+                LAST_FAILED_EL_NAME, lastFailed,
+                LOCKEDOUT_AT_EL_NAME, lockedOutAt,
+                ACTUAL_LOCKOUT_DURATION_EL_NAME, actualLockoutDuration,
+                NO_OF_TIMES_LOCKED_EL_NAME, noOfTimeLocked
+        );
+
         StringBuilder xmlBuffer = new StringBuilder(150);
-        xmlBuffer.append(BEGIN_XML).append(INVALID_PASS_COUNT_BEGIN)
-            .append(String.valueOf(invalidCount)).append(INVALID_PASS_COUNT_END)
-            .append(LAST_FAILED_BEGIN).append(String.valueOf(lastFailed))
-            .append(LAST_FAILED_END).append(LOCKEDOUT_AT_BEGIN)
-            .append(String.valueOf(lockedOutAt)).append(LOCKEDOUT_AT_END)
-            .append(ACTUAL_LOCKOUT_DURATION_BEGIN)
-            .append(String.valueOf(actualLockoutDuration))
-            .append(ACTUAL_LOCKOUT_DURATION_END)
-            .append(END_XML);
+        xmlBuffer.append("<" + ROOT_EL_NAME + ">");
+        values.forEach((key, value) -> xmlBuffer.append(String.format("<%s>%s</%s>", key, value, key)));
+        xmlBuffer.append("</" + ROOT_EL_NAME + ">");
         return xmlBuffer.toString();
     }
 
-    private static String getElement(
-        String content, 
-        String start,
-        String end
-    ) {
-        String answer = null;
-        if (content != null) {
-            int startIndex = content.indexOf(start);
-            int endIndex = content.indexOf(end);
-            if (startIndex != -1 && endIndex != -1 &&
-                startIndex + start.length() < endIndex ) {
-                answer = content.substring(startIndex + start.length(),
-                    endIndex);
-            }
-        }
-        return (answer);
+    private static long getElementLongValue(String content, String elementName) {
+        String begin = "<" + elementName + ">";
+        String end = "</" + elementName + ">";
+
+        Matcher matcher = Pattern.compile(begin + "([\\s\\S]*)" + end, Pattern.MULTILINE).matcher(content);
+        String value = matcher.find() ? matcher.group(1).trim() : null;
+        return NumberUtils.toLong(value);
     }
-    
+
+    private static long calculateLockoutDuration(AccountLockoutInfo acInfo, long lockoutDuration, int lockoutMultiplier) {
+        if (lockoutMultiplier < 1) {
+            debug.warning("Failure lockout multiplier is lower than 1. Using 1 instead.");
+            lockoutMultiplier = 1;
+        }
+        double durationMultiplier = Math.pow(lockoutMultiplier, acInfo.getNoOfTimesLocked());
+        return (long) durationMultiplier * lockoutDuration;
+    }
+
 }

@@ -143,11 +143,9 @@
                                 <Value>org.forgerock.http.protocol.Response</Value>
                                 <Value>org.forgerock.util.promise.NeverThrowsException</Value>
                                 <Value>org.forgerock.util.promise.Promise</Value>
-                                <Value>org.forgerock.openam.scripting.api.http.GroovyHttpClient</Value>
                                 <Value>org.forgerock.openam.scripting.api.http.JavaScriptHttpClient</Value>
                                 <Value>org.forgerock.openam.scripting.api.ScriptedIdentity</Value>
                                 <Value>org.forgerock.openam.scripting.api.ScriptedSession</Value>
-                                <Value>groovy.json.JsonSlurper</Value>
                             </DefaultValues>
                         </AttributeSchema>
                         <AttributeSchema name="blackList"
@@ -286,12 +284,10 @@
                             <Value>java.util.TreeSet</Value>
                             <Value>com.sun.identity.shared.debug.Debug</Value>
                             <Value>org.forgerock.openam.authentication.modules.scripted.*</Value>
-                            <Value>org.forgerock.openam.scripting.api.http.GroovyHttpClient</Value>
                             <Value>org.forgerock.openam.scripting.api.http.JavaScriptHttpClient</Value>
                             <Value>org.forgerock.openam.scripting.api.ScriptedIdentity</Value>
                             <Value>org.forgerock.openam.scripting.api.ScriptedSession</Value>
                             <Value>org.forgerock.http.client.*</Value>
-                            <Value>groovy.json.JsonSlurper</Value>
                         </AttributeValuePair>
                     </SubConfiguration>
                 </SubConfiguration>
@@ -350,14 +346,12 @@
                             <Value>com.sun.identity.shared.debug.Debug</Value>
                             <Value>com.iplanet.sso.providers.dpro.SSOTokenImpl</Value>
                             <Value>org.forgerock.http.client.*</Value>
-                            <Value>groovy.json.JsonSlurper</Value>
                             <Value>com.sun.identity.idm.AMIdentity</Value>
                             <Value>java.util.LinkedHashMap$Entry</Value>
                             <Value>java.util.LinkedHashMap$LinkedEntrySet</Value>
                             <Value>org.forgerock.openam.oauth2.OpenAMAccessToken</Value>
                             <Value>java.util.HashMap$Node</Value>
                             <Value>org.forgerock.oauth2.core.UserInfoClaims</Value>
-                            <Value>org.codehaus.groovy.runtime.GStringImpl</Value>
                             <Value>org.forgerock.openam.sso.providers.stateless.StatelessSSOToken</Value>
                         </AttributeValuePair>
                     </SubConfiguration>

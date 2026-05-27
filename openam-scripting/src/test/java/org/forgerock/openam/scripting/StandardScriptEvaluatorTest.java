@@ -12,6 +12,7 @@
  * information: "Portions copyright [year] [name of copyright owner]".
  *
  * Copyright 2014 ForgeRock AS.
+ * Portions copyright 2026 Wren Security.
  */
 
 package org.forgerock.openam.scripting;
@@ -263,25 +264,30 @@ public class StandardScriptEvaluatorTest {
         // Then - sandbox should abort script
     }
 
-    @Test(expectedExceptions = ScriptException.class,
-            expectedExceptionsMessageRegExp = ".*Access to Java class .*? is prohibited.*")
-    public void shouldForbidChangingIntegerCacheFromGroovy() throws Exception {
-        // Given
-        // This script attempts to use reflection to alter the shared integer cache, making 1 == 2 in boxed Integer
-        // contexts.
-        ScriptObject evil = getGroovyScript(
-                "def value = new Integer(0).getClass().getDeclaredField('value')",
-                "value.setAccessible(true)",
-                "value.set(Integer.valueOf(1), Integer.valueOf(2))",
-                "Integer.valueOf(1)"); // Would be 2 if allowed
+    @Test
+    public void shouldSupportGroovyDateExtensionMethods() throws Exception {
+        // Given - Date.parse/Date.format live in the groovy-dateutil module since Groovy 3, but used to be part of
+        // the Groovy core jar. Existing scripts rely on them, so the module has to stay on the classpath.
+        ScriptObject script = getGroovyScript("return Date.parse('yyyy-MM-dd', '2020-02-29').format('yyyy-MM-dd')");
 
         // When
-        testEvaluator.evaluateScript(evil, null);
+        Object result = testEvaluator.evaluateScript(script, null);
 
-        // Then - sandbox should abort script
-
+        // Then
+        assertThat(result).isEqualTo("2020-02-29");
     }
 
+    @Test(expectedExceptions = ScriptException.class)
+    public void shouldNotLeakGroovyScriptMethodsBetweenEvaluations() throws Exception {
+        // Given - the Groovy engine is shared by all scripts of a script context, so a method defined by one script
+        // must not become callable by the next one.
+        testEvaluator.evaluateScript(getGroovyScript("def leakedMethod() { return 'leaked' }", "return null"), null);
+
+        // When
+        testEvaluator.evaluateScript(getGroovyScript("return leakedMethod()"), null);
+
+        // Then - the second script should not resolve the method
+    }
 
     static ScriptObject getJavascript(String... script) {
         return getJavascript(null, script);

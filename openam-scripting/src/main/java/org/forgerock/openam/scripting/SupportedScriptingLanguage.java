@@ -49,7 +49,7 @@ public enum SupportedScriptingLanguage implements ScriptingLanguage {
     /**
      * Groovy script support based on the main Groovy distribution.
      *
-     * @see <a href="http://groovy.codehaus.org">Groovy</a>
+     * @see <a href="https://groovy-lang.org/">Groovy</a>
      */
     GROOVY {
         public ScriptEngine getScriptEngine(final ScriptEngineManager scriptEngineManager) {

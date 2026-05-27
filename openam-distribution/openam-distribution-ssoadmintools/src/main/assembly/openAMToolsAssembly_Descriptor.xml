@@ -51,14 +51,15 @@
                 <include>jakarta.mail:jakarta.mail-api</include>
                 <include>jakarta.xml.rpc:jakarta.xml.rpc-api</include>
                 <include>org.apache.santuario:xmlsec</include>
-                <include>org.codehaus.groovy:groovy-jsr223:jar</include>
-                <include>org.codehaus.groovy:groovy</include>
+                <include>org.apache.groovy:groovy:jar</include>
+                <include>org.apache.groovy:groovy-dateutil:jar</include>
+                <include>org.apache.groovy:groovy-json:jar</include>
+                <include>org.apache.groovy:groovy-jsr223:jar</include>
                 <include>com.fasterxml.jackson.core:jackson-annotations</include>
                 <include>com.fasterxml.jackson.core:jackson-core</include>
                 <include>com.fasterxml.jackson.core:jackson-databind</include>
                 <include>org.glassfish.grizzly:grizzly-framework</include>
                 <include>org.json:json</include>
-                <include>org.kohsuke:groovy-sandbox</include>
                 <include>org.mozilla:rhino</include>
                 <include>org.slf4j:slf4j-api</include>
                 <include>org.wrensecurity.commons:forgerock-audit-core</include>

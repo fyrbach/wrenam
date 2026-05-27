@@ -12,6 +12,7 @@
 * information: "Portions copyright [year] [name of copyright owner]".
 *
 * Copyright 2014-2015 ForgeRock AS.
+* Portions copyright 2026 Wren Security
 */
 package org.forgerock.openam.scripting.factories;
 
@@ -21,10 +22,6 @@ import javax.script.ScriptEngine;
 import org.codehaus.groovy.control.CompilerConfiguration;
 import org.codehaus.groovy.control.customizers.ASTTransformationCustomizer;
 import org.codehaus.groovy.jsr223.GroovyScriptEngineFactory;
-import org.codehaus.groovy.jsr223.GroovyScriptEngineImpl;
-import org.forgerock.util.Reject;
-import org.kohsuke.groovy.sandbox.GroovyValueFilter;
-import org.kohsuke.groovy.sandbox.SandboxTransformer;
 
 /**
  * This factory overrides the default getScriptEngine implementation, and ensures that we use the
@@ -33,42 +30,30 @@ import org.kohsuke.groovy.sandbox.SandboxTransformer;
  * interrupt if the script's allowed running time is up.
  */
 public class GroovyEngineFactory extends GroovyScriptEngineFactory {
-    private volatile GroovyValueFilter sandbox;
 
-    private final GroovyScriptEngineImpl groovyScriptEngine;
+    private final GroovyScriptEngine groovyScriptEngine;
 
     public GroovyEngineFactory() {
         CompilerConfiguration compilerConfig = new CompilerConfiguration();
-        // Apply sandbox before any other customisation, otherwise sandbox will be applied to implementation details.
-        compilerConfig.addCompilationCustomizers(new SandboxTransformer());
         compilerConfig.addCompilationCustomizers(new ASTTransformationCustomizer(ThreadInterrupt.class));
         GroovyClassLoader classLoader = new GroovyClassLoader(Thread.currentThread().getContextClassLoader(),
                 compilerConfig);
-        groovyScriptEngine = new GroovyScriptEngineImpl(classLoader);
+        groovyScriptEngine = new GroovyScriptEngine(classLoader, this);
     }
 
     /**
-     * Instantiates and returns an instance of {@link GroovyScriptEngineImpl} passing in
-     * a new {@link GroovyClassLoader} with an AST transformation customizer that will ensure
-     * that interrupt checks are inserted into the compiled code (at the start of closures, loops, etc.).
+     * Returns the {@link GroovyScriptEngine} instance backed by a {@link GroovyClassLoader} with an AST
+     * transformation customizer that ensures interrupt checks are inserted into the compiled code (at the start
+     * of closures, loops, etc.).
      *
-     * Scripts run through engines provided by this function will be interruptable.
+     * Scripts run through engines provided by this function will be interruptable. The same instance is returned
+     * on every call so that compiled scripts can be reused; the engine keeps individual evaluations isolated from
+     * each other.
      *
      * @return an interruptable groovy script engine implementation.
      */
     @Override
     public ScriptEngine getScriptEngine() {
-        return new SandboxedGroovyScriptEngine(this, groovyScriptEngine, sandbox);
-    }
-
-    /**
-     * Sets the Groovy value filter to use for sandboxing scripts. The filter is called every time an
-     * object is accessed by the script to verify that the access is allowed.
-     *
-     * @param sandbox the new sandbox to use.
-     */
-    public void setSandbox(final GroovyValueFilter sandbox) {
-        Reject.ifNull(sandbox);
-        this.sandbox = sandbox;
+        return groovyScriptEngine;
     }
 }

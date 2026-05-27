@@ -12,51 +12,81 @@
  * information: "Portions copyright [year] [name of copyright owner]".
  *
  * Copyright 2014 ForgeRock AS.
+ * Portions copyright 2026 Wren Security.
  */
 
 package org.forgerock.openam.scripting.factories;
 
-import org.kohsuke.groovy.sandbox.GroovyValueFilter;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
 import javax.script.ScriptEngine;
+import javax.script.ScriptException;
+import javax.script.SimpleBindings;
 
 import static org.fest.assertions.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
+import static org.testng.Assert.fail;
 
 public class GroovyEngineFactoryTest {
 
     private GroovyEngineFactory testFactory;
-    private GroovyValueFilter mockFilter;
 
     @BeforeMethod
     public void setupFactory() {
-        mockFilter = mock(GroovyValueFilter.class);
         testFactory = new GroovyEngineFactory();
     }
 
-    @Test(expectedExceptions = NullPointerException.class)
-    public void shouldErrorIfNoSandboxConfigured() {
-        testFactory.getScriptEngine();
+    @Test
+    public void shouldReturnScriptEngine() {
+        ScriptEngine engine = testFactory.getScriptEngine();
+        assertThat(engine).isNotNull();
     }
 
     @Test
-    public void shouldUseConfiguredSandbox() {
-        // Given
-        testFactory.setSandbox(mockFilter);
-
-        // When
+    public void shouldReturnEngineBoundToThisFactory() {
+        // Engines obtained from the stock Groovy factory are not interruptable, so the engine must not hand out
+        // a factory other than the one that configured it.
         ScriptEngine engine = testFactory.getScriptEngine();
 
-        // Then
-        assertThat(engine).isInstanceOf(SandboxedGroovyScriptEngine.class);
-        SandboxedGroovyScriptEngine sandboxedGroovyScriptEngine = (SandboxedGroovyScriptEngine) engine;
-        assertThat(sandboxedGroovyScriptEngine.getSandbox()).isEqualTo(mockFilter);
+        assertThat(engine.getFactory()).isSameAs(testFactory);
     }
 
-    @Test(expectedExceptions = NullPointerException.class)
-    public void shouldRejectNullSandbox() {
-        testFactory.setSandbox(null);
+    @Test
+    public void shouldAllowScriptToCallItsOwnMethods() throws Exception {
+        ScriptEngine engine = testFactory.getScriptEngine();
+
+        Object result = engine.eval("def twice(x) { x * 2 }\n return [1, 2, 3].collect { twice(it) }",
+                new SimpleBindings());
+
+        assertThat(result.toString()).isEqualTo("[2, 4, 6]");
+    }
+
+    @Test
+    public void shouldAllowScriptToCallClosuresBoundAsVariables() throws Exception {
+        // Closures held in the bindings are invoked through the same Groovy mechanism as global functions.
+        ScriptEngine engine = testFactory.getScriptEngine();
+
+        Object result = engine.eval("greet = { name -> 'hello ' + name }\n"
+                + "def call = { it -> greet(it) }\n"
+                + "return call('world')", new SimpleBindings());
+
+        assertThat(result).isEqualTo("hello world");
+    }
+
+    @Test
+    public void shouldNotLeakScriptMethodsIntoLaterEvaluations() throws Exception {
+        // Given - a script that defines a method is evaluated first
+        ScriptEngine engine = testFactory.getScriptEngine();
+        engine.eval("def leakedMethod() { return 'leaked' }\n return null", new SimpleBindings());
+
+        // When - an unrelated script tries to call it
+        try {
+            engine.eval("return leakedMethod()", new SimpleBindings());
+
+            // Then
+            fail("Method defined by a previous script was callable");
+        } catch (ScriptException ex) {
+            assertThat(ex.getMessage()).contains("leakedMethod");
+        }
     }
 }

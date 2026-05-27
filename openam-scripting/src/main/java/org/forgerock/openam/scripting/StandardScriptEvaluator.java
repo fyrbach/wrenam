@@ -12,11 +12,12 @@
  * information: "Portions copyright [year] [name of copyright owner]".
  *
  * Copyright 2014-2015 ForgeRock AS.
+ * Portions copyright 2026 Wren Security
  */
 
 package org.forgerock.openam.scripting;
 
-import org.codehaus.groovy.control.io.NullWriter;
+import java.io.Writer;
 import org.forgerock.util.Reject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -140,9 +141,9 @@ public class StandardScriptEvaluator implements ScriptEvaluator {
         context.setBindings(scriptEngineManager.getBindings(), ScriptContext.GLOBAL_SCOPE);
         // Replace reader/writer instances with null versions
         context.setReader(null);
-        // Groovy expects these writers to be non-null, so use the Groovy-supplied NullWriter instance
-        context.setWriter(NullWriter.DEFAULT);
-        context.setErrorWriter(NullWriter.DEFAULT);
+        // Groovy expects these writers to be non-null, so use the NullWriter instance
+        context.setWriter(Writer.nullWriter());
+        context.setErrorWriter(Writer.nullWriter());
         return context;
     }
 

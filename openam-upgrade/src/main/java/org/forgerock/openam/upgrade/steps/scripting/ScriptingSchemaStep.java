@@ -12,6 +12,7 @@
  * information: "Portions copyright [year] [name of copyright owner]".
  *
  * Copyright 2015-2016 ForgeRock AS.
+ * Portions copyright 2026 Wren Security
  */
 package org.forgerock.openam.upgrade.steps.scripting;
 
@@ -222,7 +223,6 @@ public class ScriptingSchemaStep extends AbstractUpgradeStep {
         Set<String> whiteList = contextEngineConfigurations.get(WHITE_LIST);
         if (whiteList != null) {
             if (whiteList.remove("org.forgerock.openam.authentication.modules.scripted.http.*")) {
-                whiteList.add("org.forgerock.openam.scripting.api.http.GroovyHttpClient");
                 whiteList.add("org.forgerock.openam.scripting.api.http.JavaScriptHttpClient");
             }
             if (whiteList.contains("org.forgerock.openam.authentication.modules.scripted.*")) {

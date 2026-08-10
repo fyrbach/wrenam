@@ -17,9 +17,18 @@
 
 package com.iplanet.services.ldap.event;
 
-import static org.forgerock.openam.ldap.LDAPConstants.*;
-import static org.forgerock.openam.utils.Time.*;
+import static org.forgerock.openam.ldap.LDAPConstants.AD_IS_DELETED_ATTR;
+import static org.forgerock.openam.ldap.LDAPConstants.AD_NOTIFICATION_OID;
+import static org.forgerock.openam.ldap.LDAPConstants.AD_WHEN_CHANGED_ATTR;
+import static org.forgerock.openam.ldap.LDAPConstants.AD_WHEN_CREATED_ATTR;
+import static org.forgerock.openam.ldap.LDAPConstants.DN_ATTR;
+import static org.forgerock.openam.utils.Time.currentTimeMillis;
 
+import com.sun.identity.common.GeneralTaskRunnable;
+import com.sun.identity.common.SystemTimerPool;
+import com.sun.identity.idm.IdRepoListener;
+import com.sun.identity.idm.IdType;
+import com.sun.identity.shared.debug.Debug;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -29,14 +38,12 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-
 import org.forgerock.openam.ldap.LDAPRequests;
 import org.forgerock.openam.sm.datalayer.api.ConnectionFactory;
 import org.forgerock.openam.sm.datalayer.api.DataLayerException;
 import org.forgerock.openam.utils.IOUtils;
 import org.forgerock.opendj.ldap.Attribute;
 import org.forgerock.opendj.ldap.Connection;
-import org.forgerock.opendj.ldap.ConnectionEventListener;
 import org.forgerock.opendj.ldap.DN;
 import org.forgerock.opendj.ldap.DecodeException;
 import org.forgerock.opendj.ldap.DecodeOptions;
@@ -52,17 +59,10 @@ import org.forgerock.opendj.ldap.controls.GenericControl;
 import org.forgerock.opendj.ldap.controls.PersistentSearchChangeType;
 import org.forgerock.opendj.ldap.controls.PersistentSearchRequestControl;
 import org.forgerock.opendj.ldap.requests.SearchRequest;
-import org.forgerock.opendj.ldap.responses.ExtendedResult;
 import org.forgerock.opendj.ldap.responses.Result;
 import org.forgerock.opendj.ldap.responses.SearchResultEntry;
 import org.forgerock.opendj.ldap.responses.SearchResultReference;
 import org.forgerock.util.annotations.VisibleForTesting;
-
-import com.sun.identity.common.GeneralTaskRunnable;
-import com.sun.identity.common.SystemTimerPool;
-import com.sun.identity.idm.IdRepoListener;
-import com.sun.identity.idm.IdType;
-import com.sun.identity.shared.debug.Debug;
 
 /**
  * An abstract implementation of LDAPv3 persistent searches.
@@ -188,7 +188,6 @@ public abstract class LDAPv3PersistentSearch<T, H> {
     }
 
     private void startSearch(Connection conn) throws LdapException {
-        conn.addConnectionEventListener(new ConnectionRestartListener());
         if (mode == null) {
             detectPersistentSearchMode(conn);
         }
@@ -227,7 +226,13 @@ public abstract class LDAPv3PersistentSearch<T, H> {
         //since psearch wasn't running until now, let's clear the caches to make sure that if something got into the
         //cache, while PS was stopped, those gets cleared out and we start with a clean cache.
         clearCaches();
-        futureResult = conn.searchAsync(searchRequest, null, new PersistentSearchResultHandler());
+        futureResult = conn.searchAsync(searchRequest, null, new PersistentSearchResultHandler())
+                .thenOnException(e -> {
+                    if (!shutdown) {
+                        DEBUG.error("Persistent search against base DN {} has failed: {}", searchBaseDN, e.getMessage());
+                        restartSearch();
+                    }
+                });
     }
 
     /**
@@ -404,23 +409,6 @@ public abstract class LDAPv3PersistentSearch<T, H> {
                 }
                 IOUtils.closeIfNotNull(conn);
             }
-        }
-    }
-
-    private class ConnectionRestartListener implements ConnectionEventListener {
-
-        @Override
-        public void handleConnectionClosed() {
-        }
-
-        @Override
-        public void handleConnectionError(boolean isDisconnectNotification, LdapException e) {
-            DEBUG.error("An error occurred while executing persistent search against base DN: {}", searchBaseDN, e);
-            restartSearch();
-        }
-
-        @Override
-        public void handleUnsolicitedNotification(ExtendedResult notification) {
         }
     }
 

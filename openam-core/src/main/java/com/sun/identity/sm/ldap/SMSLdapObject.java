@@ -289,6 +289,16 @@ public class SMSLdapObject extends SMSObjectDB implements SMSObjectListener {
                 ldapEntry = conn.searchSingleEntry(LDAPRequests.newSingleEntrySearchRequest(DN.valueOf(dn),
                         getAttributeNames()));
                 break;
+            } catch (ServiceUnavailableException e) {
+                if (retry >= connNumRetry) {
+                    throw e;
+                }
+                retry++;
+                try {
+                    Thread.sleep(connRetryInterval);
+                } catch (InterruptedException ex) {
+                    // ignored
+                }
             } catch (LdapException e) {
                 errorCode = e.getResult().getResultCode();
                 if (!retryErrorCodes.contains(errorCode) || retry == connNumRetry) {

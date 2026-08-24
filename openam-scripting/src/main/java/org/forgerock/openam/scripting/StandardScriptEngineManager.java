@@ -12,13 +12,13 @@
 * information: "Portions copyright [year] [name of copyright owner]".
 *
 * Copyright 2014-2016 ForgeRock AS.
+* Portions copyright 2026 Wren Security
 */
 
 package org.forgerock.openam.scripting;
 
 import org.forgerock.openam.scripting.factories.GroovyEngineFactory;
 import org.forgerock.openam.scripting.factories.RhinoScriptEngineFactory;
-import org.forgerock.openam.scripting.sandbox.GroovySandboxValueFilter;
 import org.forgerock.openam.scripting.sandbox.RhinoSandboxClassShutter;
 import org.forgerock.openam.scripting.timeouts.ObservedContextFactory;
 import org.forgerock.util.Reject;
@@ -72,7 +72,7 @@ public final class StandardScriptEngineManager extends ScriptEngineManager {
     @Inject
     public StandardScriptEngineManager() {
 
-        // Configure Rhino JS and Groovy script engine factories with sandboxing
+        // Configure Rhino JS script engine factory with sandboxing
         final RhinoScriptEngineFactory rhino = new RhinoScriptEngineFactory(new ObservedContextFactory(this));
         rhino.setOptimisationLevel(RhinoScriptEngineFactory.INTERPRETED);
         // Set an empty sandbox for now - will deny access to everything. App will set correct configuration before use.
@@ -81,10 +81,9 @@ public final class StandardScriptEngineManager extends ScriptEngineManager {
         rhino.setClassShutter(sandbox);
 
         final GroovyEngineFactory groovy = new GroovyEngineFactory();
-        groovy.setSandbox(new GroovySandboxValueFilter(sandbox));
 
         // Add a listener to configure sandbox from configuration changes
-        addConfigurationListener(new SandboxConfigurationListener(rhino, groovy));
+        addConfigurationListener(new SandboxConfigurationListener(rhino));
 
         registerEngineName(SupportedScriptingLanguage.JAVASCRIPT_ENGINE_NAME, rhino);
         registerEngineName(SupportedScriptingLanguage.GROOVY_ENGINE_NAME, groovy);
@@ -170,21 +169,18 @@ public final class StandardScriptEngineManager extends ScriptEngineManager {
     }
 
     /**
-     * Listens for configuration changes and configures the Rhino and Groovy sandbox to match current values.
+     * Listens for configuration changes and configures the Rhino sandbox to match current values.
      */
     private static final class SandboxConfigurationListener implements ConfigurationListener {
         private final RhinoScriptEngineFactory rhinoScriptEngineFactory;
-        private final GroovyEngineFactory groovyEngineFactory;
 
-        private SandboxConfigurationListener(final RhinoScriptEngineFactory rhinoScriptEngineFactory,
-                                             final GroovyEngineFactory groovy) {
-            Reject.ifNull(rhinoScriptEngineFactory, groovy);
+        private SandboxConfigurationListener(final RhinoScriptEngineFactory rhinoScriptEngineFactory) {
+            Reject.ifNull(rhinoScriptEngineFactory);
             this.rhinoScriptEngineFactory = rhinoScriptEngineFactory;
-            this.groovyEngineFactory = groovy;
         }
 
         /**
-         * Updates the Rhino and Groovy sandbox implementations to match the current configuration entries.
+         * Updates the Rhino sandbox implementation to match the current configuration entries.
          *
          * @param newConfiguration the new script engine configuration. Never null.
          */
@@ -198,7 +194,6 @@ public final class StandardScriptEngineManager extends ScriptEngineManager {
                     newConfiguration.getClassBlackList());
 
             rhinoScriptEngineFactory.setClassShutter(sandbox);
-            groovyEngineFactory.setSandbox(new GroovySandboxValueFilter(sandbox));
         }
     }
 }

@@ -12,9 +12,10 @@
  * information: "Portions copyright [year] [name of copyright owner]".
  *
  * Copyright 2014 ForgeRock AS.
+ * Portions copyright 2026 Wren Security
  */
 
 /**
- * Language-specific implementations of script sandboxing to prevent malicious behaviour.
+ * Sandboxing of JavaScript (Rhino) scripts to prevent malicious behaviour. Groovy scripts are not sandboxed.
  */
 package org.forgerock.openam.scripting.sandbox;

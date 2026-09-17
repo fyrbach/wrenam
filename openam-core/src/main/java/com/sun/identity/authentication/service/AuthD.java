@@ -26,6 +26,7 @@
  *
  * Portions Copyrighted 2010-2016 ForgeRock AS.
  * Portions Copyrighted 2016 Nomura Research Institute, Ltd.
+ * Portions Copyright 2026 Wren Security
  */
 package com.sun.identity.authentication.service;
 
@@ -192,7 +193,7 @@ public class AuthD implements ConfigurationListener {
     private AMStoreConnection dpStore = null;
 
     // session service schema
-    private ServiceSchema sessionSchema;
+    private volatile ServiceSchema sessionSchema;
 
     private Set defaultSuccessURLSet = null;
     private String defaultSuccessURL = null;
@@ -405,13 +406,16 @@ public class AuthD implements ConfigurationListener {
      * Update the SessionService dynamic attributes.
      * @param scm <code>ServiceSchemaManager</code> to be used for update
      * @throws SMSException if it fails to update session service
+     * @throws IllegalStateException if the session service dynamic schema is missing
      */
-    synchronized void updateSessionServiceDynamics(ServiceSchemaManager scm)
-    throws SMSException {
-        
-        sessionSchema = scm.getDynamicSchema();
+    synchronized void updateSessionServiceDynamics(ServiceSchemaManager scm) throws SMSException {
+        ServiceSchema schema = scm.getDynamicSchema();
+        if (schema == null) {
+            throw new IllegalStateException("Session service dynamic schema is missing");
+        }
+
         if (debug.messageEnabled()) {
-            Map attrs = sessionSchema.getAttributeDefaults();
+            Map<String, Set<String>> attrs = schema.getAttributeDefaults();
             String defaultMaxSessionTime = CollectionHelper.getMapAttr(
                 attrs, ISAuthConstants.MAX_SESSION_TIME, "120");
             String defaultMaxIdleTime = CollectionHelper.getMapAttr(
@@ -422,8 +426,10 @@ public class AuthD implements ConfigurationListener {
             + "\nAuthD.defaultMaxIdleTime=" + defaultMaxIdleTime
             + "\nAuthD.defaultMaxCachingTime=" + defaultMaxCachingTime);
         }
+
+        sessionSchema = schema;
     }
-    
+
     /**
      * Return max session time
      * @return max session time
